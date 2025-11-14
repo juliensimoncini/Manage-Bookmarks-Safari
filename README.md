@@ -2,7 +2,7 @@
 
 ## 📘 Présentation
 
-Ce dépôt contient deux scripts Python pour **analyser, exporter et nettoyer** les signets Safari sur macOS (compatible jusqu’à **Safari 26.1 / macOS Sonoma**).
+Ce dépôt contient **4 scripts Python puissants** permettant d’auditer, exporter, tester et nettoyer automatiquement vos signets Safari (compatible jusqu’à **Safari 26.1 / macOS Sonoma**).
 
 - `list_safari_bookmarks.py`  
   → Liste, filtre et exporte les signets (table, CSV, JSON, NDJSON)
