@@ -21,6 +21,7 @@ from urllib.parse import urlparse
 from datetime import datetime
 import sys
 
+# --- Constantes chemins (utilisateur courant) ---
 BOOKMARKS_PATH = Path.home() / "Library/Safari/Bookmarks.plist"
 
 def hostname(url: str) -> str:

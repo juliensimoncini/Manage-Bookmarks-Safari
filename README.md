@@ -4,10 +4,21 @@
 
 Ce dépôt contient deux scripts Python pour **analyser, exporter et nettoyer** les signets Safari sur macOS (compatible jusqu’à **Safari 26.1 / macOS Sonoma**).
 
-- `list_safari_bookmarks.py` : liste, filtre et exporte les signets.
-- `remove_safari_bookmarks_by_domains.py` : supprime automatiquement les signets correspondant à un ou plusieurs domaines.
+- `list_safari_bookmarks.py`  
+  → Liste, filtre et exporte les signets (table, CSV, JSON, NDJSON)
 
-> 🧠 Ces scripts manipulent directement le fichier `Bookmarks.plist` de Safari, situé dans le dossier `~/Library/Safari/`.
+- `check_safari_bookmarks_http.py`  
+  → Teste les URLs, affiche le statut HTTP et détecte les liens cassés
+
+- `prune_broken_safari_bookmarks.py`  
+  → Supprime automatiquement les signets dont l’URL ne répond pas ou renvoie un statut HTTP ≥ *seuil* (par défaut 300)
+
+- `remove_safari_bookmarks_by_domains.py`
+  → Supprime automatiquement les signets correspondant à un ou plusieurs domaines.
+
+🧠 Ces scripts manipulent directement le fichier `Bookmarks.plist` de Safari, situé dans `~/Library/Safari/Bookmarks.plist`.
+
+> ⚠️ Safari doit être **fermé** avant toute modification, et l’accès **Full Disk Access** doit être donné à Terminal pour que Python puisse lire ce fichier.
 
 ---
 
@@ -15,6 +26,7 @@ Ce dépôt contient deux scripts Python pour **analyser, exporter et nettoyer** 
 
 - macOS Catalina ou supérieur (testé sur Sonoma 14.x)
 - Python 3.9+ installé (par défaut sur macOS)
+- Terminal / Python autorisé via **Accès complet au disque**
 - Safari **fermé** avant toute modification de ses signets
 
 ---
@@ -35,8 +47,10 @@ macOS bloque par défaut l’accès au dossier `~/Library/Safari` pour les scrip
 ## 📂 Structure du projet
 
 ```
-safari-tools/
+/
 ├── list_safari_bookmarks.py
+├── check_safari_bookmarks_http.py
+├── prune_broken_safari_bookmarks.py
 ├── remove_safari_bookmarks_by_domains.py
 └── README.md
 ```
@@ -100,9 +114,7 @@ python3 list_safari_bookmarks.py   --format ndjson   --output ~/Desktop/safari_b
 python3 list_safari_bookmarks.py   --bookmarks-path ~/Desktop/Bookmarks.plist
 ```
 
----
-
-### 🧱 Exemple de sortie (mode table)
+#### 🧱 Exemple de sortie (mode table)
 ```
 path                     | title                      | url                           | domain            | added_at
 --------------------------+----------------------------+--------------------------------+-------------------+----------------------------
@@ -112,7 +124,88 @@ Barre de favoris/Docs     | Apple Developer            | https://developer.apple
 
 ---
 
-## 🧹 2. Supprimer des signets – `remove_safari_bookmarks_by_domains.py`
+## 🧪 2. Tester les URLs — `check_safari_bookmarks_http.py`
+
+Ce script teste chaque signet HTTP/HTTPS et affiche :
+
+- statut HTTP (200, 301, 404, 500…)
+- erreurs réseau
+- chemin complet du signet
+
+---
+
+### 💻 Commandes principales
+
+#### Tester un dossier précis
+```bash
+python3 check_safari_bookmarks_http.py --folder "Barre de favoris/Dev"
+```
+
+#### Export CSV
+```bash
+python3 check_safari_bookmarks_http.py   --folder "Barre de favoris/Dev"   --output-csv ~/Desktop/check_dev.csv
+```
+
+#### 🧱 Exemple de sortie :
+```
+[1/12] Barre de favoris / Dev / Laravel / Docs
+   URL → https://laravel.com/docs
+   Statut → 200 (OK)
+
+[2/12] Barre de favoris / Dev / API / Old
+   URL → http://my-old-api.com
+   Statut → 404 (Erreur client)
+```
+
+---
+
+## 🔥 3. Supprimer les signets cassés — `prune_broken_safari_bookmarks.py`
+
+#### Objectif :
+Supprimer automatiquement les signets :
+- dont l’URL ne répond pas,
+- ou répond un statut HTTP ≥ `min-status` (par défaut : 300).
+
+#### Le script :
+- teste chaque signet
+- construit le chemin complet
+- marque les signets cassés pour suppression
+- crée automatiquement une **sauvegarde horodatée**
+- supprime (sauf en `--dry-run`)
+- réécrit le fichier `Bookmarks.plist`
+
+---
+
+### 💻 Commandes principales
+
+#### 🧪 Simulation : voir ce qui serait supprimé
+```bash
+python3 prune_broken_safari_bookmarks.py --dry-run
+```
+
+#### 🔍 Cibler uniquement un dossier
+```bash
+python3 prune_broken_safari_bookmarks.py   --folder "Barre de favoris/Dev"   --dry-run
+```
+
+#### 🔥 Suppression réelle dans le dossier ciblé
+```bash
+python3 prune_broken_safari_bookmarks.py   --folder "Barre de favoris/Dev"
+```
+
+#### 🔥 Supprimer partout (tous les signets)
+```bash
+python3 prune_broken_safari_bookmarks.py
+```
+
+#### ❗ Ne supprimer qu’à partir de statut ≥ 400
+```bash
+python3 prune_broken_safari_bookmarks.py --min-status 400
+```
+
+---
+
+## 🧹 4. Supprimer des signets – `remove_safari_bookmarks_by_domains.py`
 
 ### 🎯 Description
 
@@ -146,7 +239,7 @@ python3 remove_safari_bookmarks_by_domains.py   -d reddit.com -d linkedin.com   
 
 ---
 
-### 🛡️ Sauvegardes automatiques
+## 🛡️ 5. Sauvegardes automatiques
 
 Chaque exécution crée une sauvegarde dans le même dossier :
 ```
@@ -160,7 +253,7 @@ cp ~/Library/Safari/Bookmarks.backup.20251112-154200.plist    ~/Library/Safari/B
 
 ---
 
-### ⚠️ Conseils avant exécution
+## ⚠️ 6. Conseils avant exécution
 
 1. **Fermer Safari** avant de modifier le fichier.
 2. **Désactiver temporairement la synchronisation iCloud Safari**, sinon iCloud risque de réinjecter les anciens signets.
@@ -169,7 +262,7 @@ cp ~/Library/Safari/Bookmarks.backup.20251112-154200.plist    ~/Library/Safari/B
 
 ---
 
-## 🕐 Exécution automatique (optionnel)
+## 🕐 7. Exécution automatique (optionnel)
 
 Pour planifier un nettoyage régulier, tu peux créer une tâche `launchd` ou `cron`.
 
@@ -185,7 +278,7 @@ et ajoute :
 
 ---
 
-## 🔧 Dépannage
+## 🔧 8. Dépannage
 
 ### ❌ `Operation not permitted`
 macOS bloque Python d’accéder au dossier `~/Library/Safari`.
@@ -199,7 +292,7 @@ Vérifie :
 
 ---
 
-## ✨ Commandes récapitulatives (copy-paste ready)
+## ✨ 9. Commandes récapitulatives (copy-paste ready)
 
 ```bash
 # Fermer Safari
@@ -216,6 +309,15 @@ python3 list_safari_bookmarks.py -d github.com -d apple.com
 
 # Exporter en CSV
 python3 list_safari_bookmarks.py --format csv --output ~/Desktop/safari_bookmarks.csv
+
+# Tester les signets d'un dossier
+python3 check_safari_bookmarks_http.py --folder "Barre de favoris/Dev"
+
+# Simuler la suppression
+python3 prune_broken_safari_bookmarks.py --dry-run
+
+# Nettoyer réellement
+python3 prune_broken_safari_bookmarks.py
 
 # Simulation de suppression
 python3 remove_safari_bookmarks_by_domains.py -d facebook.com -d x.com --dry-run
